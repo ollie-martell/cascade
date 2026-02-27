@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cascade — One piece of content. Every platform. Instantly.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap" rel="stylesheet" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #F5F5F7;
+      --surface:      #FFFFFF;
+      --border:       rgba(0,0,0,0.07);
+      --border-mid:   rgba(0,0,0,0.1);
+      --text-1:       #1C1C1E;
+      --text-2:       #6E6E73;
+      --text-3:       #AEAEB2;
+      --purple:       #7C3AED;
+      --purple-2:     #6366F1;
+      --purple-tint:  rgba(124,58,237,0.07);
+      --purple-text:  #5B21B6;
+      --success:      #34C759;
+      --error:        #FF3B30;
+      --warning-bg:   #FFFBEB;
+      --warning-border:#FDE68A;
+      --warning-text: #92400E;
+
+      --shadow-sm:    0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.06);
+      --shadow-card:  0 2px 8px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.06);
+      --shadow-elevated: 0 8px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.06);
+      --shadow-focus: 0 0 0 4px rgba(124,58,237,0.18);
+
+      --r-xs:  6px;
+      --r-sm:  10px;
+      --r-md:  14px;
+      --r-lg:  18px;
+      --r-xl:  22px;
+      --r-pill: 999px;
+
+      --ease:         cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-spring:  cubic-bezier(0.34, 1.4, 0.64, 1);
+      --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+
+    /* Subtle radial gradient light source at top */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -80px; left: 50%;
+      transform: translateX(-50%);
+      width: 900px; height: 700px;
+      background: radial-gradient(ellipse at 50% 10%, rgba(124,58,237,0.08) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #root { position: relative; z-index: 1; }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
+
+    /* ── Keyframes ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes cascadePulse {
+      0%, 100% { opacity: 0.5; transform: scale(0.96); }
+      50%       { opacity: 1;   transform: scale(1.0); }
+    }
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.6); opacity: 0.5; }
+    }
+    @keyframes progressShimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes stageIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes checkPop {
+      0%   { transform: scale(0); opacity: 0; }
+      60%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── Utility animations ── */
+    .anim-fade-up    { animation: fadeUp 0.5s var(--ease-out) forwards; }
+    .anim-fade-in    { animation: fadeIn 0.3s var(--ease) forwards; }
+    .anim-cascade    { animation: cascadePulse 1.6s ease-in-out infinite; }
+    .anim-dot        { animation: dotPulse 1s ease-in-out infinite; }
+    .anim-spin       { animation: spin 1s linear infinite; }
+    .anim-stage-in   { animation: stageIn 0.25s var(--ease-out) forwards; }
+    .anim-check-pop  { animation: checkPop 0.3s var(--ease-spring) forwards; }
+
+    /* Staggered card entrance */
+    .card-enter { opacity: 0; }
+    .card-enter-0  { animation: fadeUp 0.5s 0ms   var(--ease-out) forwards; }
+    .card-enter-1  { animation: fadeUp 0.5s 70ms  var(--ease-out) forwards; }
+    .card-enter-2  { animation: fadeUp 0.5s 140ms var(--ease-out) forwards; }
+    .card-enter-3  { animation: fadeUp 0.5s 210ms var(--ease-out) forwards; }
+    .card-enter-4  { animation: fadeUp 0.5s 280ms var(--ease-out) forwards; }
+    .card-enter-5  { animation: fadeUp 0.5s 350ms var(--ease-out) forwards; }
+    .card-enter-6  { animation: fadeUp 0.5s 420ms var(--ease-out) forwards; }
+    .card-enter-7  { animation: fadeUp 0.5s 490ms var(--ease-out) forwards; }
+    .card-enter-8  { animation: fadeUp 0.5s 560ms var(--ease-out) forwards; }
+    .card-enter-9  { animation: fadeUp 0.5s 630ms var(--ease-out) forwards; }
+    .card-enter-10 { animation: fadeUp 0.5s 700ms var(--ease-out) forwards; }
+    .card-enter-11 { animation: fadeUp 0.5s 770ms var(--ease-out) forwards; }
+
+    /* Progress bar */
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7C3AED, #6366F1, #7C3AED);
+      background-size: 200% 100%;
+      animation: progressShimmer 2.5s linear infinite;
+      transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: inherit;
+    }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #7C3AED 0%, #6366F1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Inputs */
+    textarea, input[type=url], input[type=text] {
+      outline: none;
+      resize: none;
+      font-family: inherit;
+    }
+    textarea:focus, input:focus {
+      border-color: var(--purple) !important;
+      box-shadow: var(--shadow-focus) !important;
+    }
+
+    /* Scrollable row without scrollbar */
+    .scroll-x { overflow-x: auto; scrollbar-width: none; }
+    .scroll-x::-webkit-scrollbar { display: none; }
+
+    /* Expandable */
+    .expandable { overflow: hidden; transition: max-height 0.45s var(--ease); }
+
+    /* Card hover lift */
+    .card-hover {
+      transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+    .card-hover:hover {
+      box-shadow: var(--shadow-elevated) !important;
+      transform: translateY(-1px);
+    }
+
+    /* Button base */
+    button { cursor: pointer; font-family: inherit; border: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    const API_BASE = 'http://localhost:3001';
+
+    // ─── Data ────────────────────────────────────────────────────────────────
+
+    const PLATFORMS = [
+      { id: 'instagram_caption', name: 'Instagram Caption',    color: '#E1306C', abbr: 'IG' },
+      { id: 'instagram_reel',    name: 'Instagram Reel Script', color: '#833AB4', abbr: 'IR' },
+      { id: 'tiktok_script',     name: 'TikTok Script',         color: '#111111', abbr: 'TT' },
+      { id: 'youtube_shorts',    name: 'YouTube Shorts',        color: '#FF0000', abbr: 'YT' },
+      { id: 'twitter_thread',    name: 'Twitter/X Thread',      color: '#1D9BF0', abbr: 'X' },
+      { id: 'linkedin_post',     name: 'LinkedIn Post',         color: '#0A66C2', abbr: 'LI' },
+      { id: 'linkedin_article',  name: 'LinkedIn Article',      color: '#0A66C2', abbr: 'LA' },
+      { id: 'newsletter',        name: 'Newsletter',            color: '#6366F1', abbr: 'NL' },
+      { id: 'podcast_notes',     name: 'Podcast Show Notes',    color: '#A855F7', abbr: 'PC' },
+      { id: 'blog_summary',      name: 'Blog Post Summary',     color: '#10B981', abbr: 'BG' },
+      { id: 'email_subjects',    name: 'Email Subject Lines',   color: '#F59E0B', abbr: 'EM' },
+      { id: 'quote_cards',       name: 'Quote Cards',           color: '#EC4899', abbr: 'QT' },
+    ];
+
+    const TONES = ['Authoritative', 'Conversational', 'Punchy', 'Educational'];
+
+    const STAGE_CONFIG = {
+      extract:    { label: 'Extracting content',    sub: 'Reading your source material...' },
+      transcript: { label: 'Fetching transcript',   sub: 'Pulling transcript from YouTube...' },
+      analyse:    { label: 'Analysing structure',   sub: 'Identifying key ideas, hooks, and themes...' },
+      map:        { label: 'Mapping to platforms',  sub: 'Adapting tone and format for each channel...' },
+      generate:   { label: 'Generating content',    sub: 'Writing your platform content...' },
+      polish:     { label: 'Polishing output',      sub: 'Reviewing hooks and CTAs...' },
+      done:       { label: 'Done',                  sub: 'Your content suite is ready.' },
+    };
+
+    const ORDERED_STAGES = ['extract', 'transcript', 'analyse', 'map', 'generate', 'polish', 'done'];
+
+    const PLATFORM_TIPS = {
+      instagram_caption: 'Best posted Tue–Thu, 8–10am. Saves signal reach — include a "save this" CTA.',
+      instagram_reel:    'Hook must land in first 1.5s. Add captions — 85% of Reels are watched on mute.',
+      tiktok_script:     'First 2 words decide if they stay. Post at 6–9pm on weekdays.',
+      youtube_shorts:    '9:16 format only. Retention rate is the primary ranking signal.',
+      twitter_thread:    'Tweet 1 is everything. Post Sun–Thu, 8–10am or 6–9pm ET.',
+      linkedin_post:     'Best Tue–Thu, 7:30–8:30am. Never put external links in the post body.',
+      linkedin_article:  'Articles get email distribution to your followers. The headline is your ad.',
+      newsletter:        'Plain-text style consistently outperforms HTML for personal newsletters.',
+      podcast_notes:     'Good show notes directly improve discoverability on Spotify and Apple Podcasts.',
+      blog_summary:      'Put your primary keyword naturally in the first 100 words.',
+      email_subjects:    '40–50 characters is the mobile preview sweet spot. A/B test always.',
+      quote_cards:       'Add brand watermark before posting. 1:1 square crops perfectly everywhere.',
+    };
+
+    // ─── Icons ───────────────────────────────────────────────────────────────
+
+    const CascadeIcon = ({ size = 30 }) => (
+      <svg width={size} height={size} viewBox="0 0 30 30" fill="none">
+        <defs>
+          <linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7C3AED"/>
+            <stop offset="100%" stopColor="#6366F1"/>
+          </linearGradient>
+        </defs>
+        <rect x="2"  y="5"  width="7" height="18" rx="3.5" fill="url(#cg1)" opacity="1"/>
+        <rect x="12" y="10" width="7" height="15" rx="3.5" fill="url(#cg1)" opacity="0.75"/>
+        <rect x="22" y="15" width="6" height="12" rx="3"   fill="url(#cg1)" opacity="0.5"/>
+      </svg>
+    );
+
+    const Ico = {
+      copy: (s=15) => (
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="5.5" y="5.5" width="9" height="9" rx="1.5"/>
+          <path d="M2.5 10.5V3A1.5 1.5 0 014 1.5h7.5"/>
+        </svg>
+      ),
+      check: (s=15) => (
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 8.5l3.5 3L13 4"/>
+        </svg>
+      ),
+      chevron: (s=15, open=false) => (
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s var(--ease)', display:'block' }}>
+          <path d="M4 6l4 4 4-4"/>
+        </svg>
+      ),
+      arrow: (s=18) => (
+        <svg width={s} height={s} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3.75 9h10.5M9.75 4.5l4.5 4.5-4.5 4.5"/>
+        </svg>
+      ),
+      spinner: (s=16) => (
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" className="anim-spin">
+          <circle cx="8" cy="8" r="6" stroke="rgba(0,0,0,0.08)" strokeWidth="2"/>
+          <path d="M8 2a6 6 0 016 6" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      ),
+      warn: (s=15) => (
+        <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 2L14.5 13H1.5L8 2z"/><path d="M8 6.5v3M8 11.5v.5"/>
+        </svg>
+      ),
+    };
+
+    // ─── Platform badge ───────────────────────────────────────────────────────
+
+    const Badge = ({ id, size = 22 }) => {
+      const p = PLATFORMS.find(p => p.id === id);
+      if (!p) return null;
+      return (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: size, height: size, borderRadius: Math.round(size * 0.26),
+          background: p.color, color: '#fff',
+          fontSize: size * 0.34, fontWeight: 700, letterSpacing: '-0.3px', flexShrink: 0,
+        }}>
+          {p.abbr}
+        </span>
+      );
+    };
+
+    // ─── Content renderer ─────────────────────────────────────────────────────
+
+    const Content = ({ text, platform }) => {
+      if (!text) return null;
+
+      if (platform === 'twitter_thread') {
+        const tweets = text.split(/(?=\n\d+\/)/).map(t => t.trim()).filter(Boolean);
+        return (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {tweets.map((t, i) => (
+              <div key={i} style={{
+                padding:'13px 15px', background:'rgba(0,0,0,0.02)',
+                borderRadius:10, fontSize:14, lineHeight:1.65,
+                border:'1px solid var(--border)', color:'var(--text-1)',
+                whiteSpace:'pre-wrap',
+              }}>{t}</div>
+            ))}
+          </div>
+        );
+      }
+
+      if (['instagram_reel','tiktok_script','youtube_shorts'].includes(platform)) {
+        return (
+          <div style={{ fontSize:14, lineHeight:1.7, color:'var(--text-2)' }}>
+            {text.split('\n').map((line, i) => {
+              if (/^\[(HOOK|BODY|CTA)\]/.test(line.trim())) return (
+                <div key={i} style={{
+                  color:'var(--purple)', fontWeight:600, fontSize:10.5,
+                  letterSpacing:'0.12em', textTransform:'uppercase',
+                  marginTop: i > 0 ? 20 : 0, marginBottom:6,
+                }}>
+                  {line.trim()}
+                </div>
+              );
+              if (!line.trim()) return <div key={i} style={{height:5}}/>;
+              return <div key={i} style={{marginBottom:3}}>{line}</div>;
+            })}
+          </div>
+        );
+      }
+
+      if (platform === 'email_subjects') {
+        return (
+          <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
+            {text.split('\n').filter(l=>l.trim()).map((line, i) => (
+              <div key={i} style={{
+                padding:'11px 15px', borderRadius:10,
+                background: i === 0 ? 'rgba(124,58,237,0.07)' : 'rgba(0,0,0,0.025)',
+                border: `1px solid ${i === 0 ? 'rgba(124,58,237,0.2)' : 'var(--border)'}`,
+                fontSize:14, lineHeight:1.5,
+                color: i === 0 ? 'var(--purple-text)' : 'var(--text-2)',
+                fontWeight: i === 0 ? 500 : 400,
+              }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      if (platform === 'quote_cards') {
+        return (
+          <div style={{ display:'flex', flexDirection:'column', gap:9 }}>
+            {text.split('\n').filter(l=>l.trim()).map((line, i) => (
+              <div key={i} style={{
+                padding:'15px 18px', background:'rgba(0,0,0,0.02)',
+                borderRadius:10, borderLeft:'3px solid var(--purple)',
+                fontSize:14, lineHeight:1.7,
+                color:'var(--text-1)', fontStyle:'italic',
+              }}>
+                {line.replace(/^\d+\.\s*/, '').replace(/^[""]|[""]$/g,'')}
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      return (
+        <div style={{ fontSize:14, lineHeight:1.75, color:'var(--text-2)' }}>
+          {text.split(/\n\n+/).filter(p=>p.trim()).map((para, i) => {
+            if (para.startsWith('## ')) return (
+              <h3 key={i} style={{
+                fontSize:15, fontWeight:600, color:'var(--text-1)',
+                margin:'20px 0 8px', letterSpacing:'-0.01em',
+              }}>
+                {para.replace(/^## /,'')}
+              </h3>
+            );
+            if (para.includes('\n- ') || para.startsWith('- ')) {
+              return (
+                <ul key={i} style={{ margin:'8px 0', paddingLeft:20 }}>
+                  {para.split('\n').filter(l=>l.trim()).map((item,j) => (
+                    <li key={j} style={{ marginBottom:5, lineHeight:1.65 }}>
+                      {item.replace(/^[-•]\s*/,'')}
+                    </li>
+                  ))}
+                </ul>
+              );
+            }
+            return <p key={i} style={{ margin:'0 0 13px', whiteSpace:'pre-wrap' }}>{para.trim()}</p>;
+          })}
+        </div>
+      );
+    };
+
+    // ─── Header ───────────────────────────────────────────────────────────────
+
+    const Header = () => (
+      <header style={{
+        position:'fixed', top:0, left:0, right:0, height:56, zIndex:100,
+        background:'rgba(245,245,247,0.85)',
+        backdropFilter:'saturate(200%) blur(20px)',
+        WebkitBackdropFilter:'saturate(200%) blur(20px)',
+        borderBottom:'1px solid rgba(0,0,0,0.08)',
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'0 32px',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <CascadeIcon size={28}/>
+          <span style={{
+            fontSize:18, fontWeight:700, color:'var(--text-1)',
+            letterSpacing:'-0.03em',
+          }}>
+            Cascade
+          </span>
+        </div>
+      </header>
+    );
+
+    // ─── Content card ─────────────────────────────────────────────────────────
+
+    const Card = ({ platformId, text, index }) => {
+      const [copied, setCopied]     = useState(false);
+      const [expanded, setExpanded] = useState(false);
+      const platform = PLATFORMS.find(p => p.id === platformId);
+      const isLong   = (text || '').length > 900;
+      const tip      = PLATFORM_TIPS[platformId];
+
+      const copy = () => {
+        navigator.clipboard.writeText(text || '').then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
+      };
+
+      return (
+        <div
+          className={`card-enter card-enter-${Math.min(index,11)} card-hover`}
+          style={{
+            background:'var(--surface)',
+            border:'1px solid var(--border)',
+            borderRadius:'var(--r-lg)',
+            boxShadow:'var(--shadow-card)',
+            overflow:'hidden',
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            padding:'15px 20px',
+            background:'rgba(0,0,0,0.015)',
+            borderBottom:'1px solid var(--border)',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+              <Badge id={platformId} size={24}/>
+              <span style={{ fontSize:13, fontWeight:500, color:'var(--text-2)', letterSpacing:'-0.01em' }}>
+                {platform?.name}
+              </span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{
+                fontSize:11, color:'var(--text-3)', padding:'3px 8px',
+                background:'rgba(0,0,0,0.04)', borderRadius:'var(--r-pill)',
+                letterSpacing:'0.01em',
+              }}>
+                {(text||'').length.toLocaleString()} chars
+              </span>
+              <button
+                onClick={copy}
+                style={{
+                  display:'flex', alignItems:'center', gap:5,
+                  padding:'6px 11px', borderRadius:'var(--r-sm)',
+                  border:`1px solid ${copied ? 'rgba(52,199,89,0.4)' : 'var(--border)'}`,
+                  background: copied ? 'rgba(52,199,89,0.08)' : 'var(--surface)',
+                  color: copied ? 'var(--success)' : 'var(--text-2)',
+                  fontSize:12, fontWeight:500,
+                  transition:'all 0.15s var(--ease)',
+                }}
+              >
+                {copied
+                  ? <span className="anim-check-pop" style={{display:'flex',alignItems:'center',gap:4}}>{Ico.check(12)} Copied</span>
+                  : <span style={{display:'flex',alignItems:'center',gap:4}}>{Ico.copy(12)} Copy</span>
+                }
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding:'18px 20px' }}>
+            <div className="expandable" style={{ maxHeight: isLong && !expanded ? 320 : 99999 }}>
+              <Content text={text} platform={platformId}/>
+            </div>
+            {isLong && (
+              <button
+                onClick={() => setExpanded(e=>!e)}
+                style={{
+                  marginTop:10, fontSize:13, fontWeight:500,
+                  color:'var(--purple)', background:'none', border:'none', padding:0,
+                  opacity:0.85, transition:'opacity 0.15s',
+                }}
+                onMouseEnter={e=>e.currentTarget.style.opacity='1'}
+                onMouseLeave={e=>e.currentTarget.style.opacity='0.85'}
+              >
+                {expanded ? '↑ Show less' : '↓ Show more'}
+              </button>
+            )}
+          </div>
+
+          {/* Tip footer */}
+          {tip && (
+            <div style={{
+              padding:'10px 20px', borderTop:'1px solid var(--border)',
+              fontSize:12, color:'var(--text-3)', fontStyle:'italic', lineHeight:1.5,
+            }}>
+              💡 {tip}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ─── Loading panel ────────────────────────────────────────────────────────
+
+    const Loader = ({ stageHistory, currentStage, progress, platformName, retrying, warning }) => {
+      const label = currentStage === 'generate' && platformName
+        ? `Generating ${platformName}`
+        : STAGE_CONFIG[currentStage]?.label || 'Processing...';
+
+      const sub = retrying
+        ? <span style={{color:'#F59E0B'}}>⚡ Generation slowed — retrying...</span>
+        : currentStage === 'generate' && platformName
+          ? `Writing your ${platformName} content...`
+          : STAGE_CONFIG[currentStage]?.sub || '';
+
+      const showTranscript = stageHistory.includes('transcript') || currentStage === 'transcript';
+
+      const getStatus = (id) => {
+        const idx = ORDERED_STAGES.indexOf(id);
+        const cur = ORDERED_STAGES.indexOf(currentStage);
+        if (id === 'transcript' && !showTranscript) return 'hidden';
+        if (idx < cur)  return 'done';
+        if (idx === cur) return 'active';
+        return 'pending';
+      };
+
+      return (
+        <div className="anim-fade-up" style={{
+          background:'var(--surface)',
+          border:'1px solid var(--border)',
+          borderRadius:'var(--r-xl)',
+          boxShadow:'var(--shadow-elevated)',
+          overflow:'hidden',
+          marginTop:28,
+        }}>
+          <div style={{
+            height:3,
+            background:'linear-gradient(90deg, var(--purple) 0%, var(--purple-2) 100%)',
+          }}/>
+
+          <div style={{ padding:'36px 40px 32px' }}>
+            {/* Logo + stage label */}
+            <div style={{ display:'flex', alignItems:'flex-start', gap:20, marginBottom:32 }}>
+              <div className="anim-cascade" style={{ flexShrink:0, marginTop:3 }}>
+                <CascadeIcon size={40}/>
+              </div>
+              <div>
+                <div key={label} className="anim-stage-in" style={{
+                  fontSize:26, fontWeight:700, color:'var(--text-1)',
+                  letterSpacing:'-0.03em', lineHeight:1.15, marginBottom:6,
+                }}>
+                  {label}
+                </div>
+                <div style={{ fontSize:14, color:'var(--text-2)', lineHeight:1.45 }}>
+                  {sub}
+                </div>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{
+              height:4, background:'rgba(0,0,0,0.06)',
+              borderRadius:'var(--r-pill)', marginBottom:32, overflow:'hidden',
+            }}>
+              <div className="progress-fill" style={{ width:`${progress}%` }}/>
+            </div>
+
+            {/* Warning */}
+            {warning && (
+              <div style={{
+                display:'flex', alignItems:'center', gap:8,
+                padding:'11px 15px', background:'var(--warning-bg)',
+                border:'1px solid var(--warning-border)', borderRadius:'var(--r-sm)',
+                fontSize:13, color:'var(--warning-text)', marginBottom:24,
+              }}>
+                {Ico.warn(14)} {warning}
+              </div>
+            )}
+
+            {/* Stage list */}
+            <div style={{ display:'flex', flexDirection:'column', gap:13 }}>
+              {ORDERED_STAGES.filter(id => getStatus(id) !== 'hidden').map(id => {
+                const status = getStatus(id);
+                const cfg = STAGE_CONFIG[id];
+                const lbl = id === 'generate' && currentStage === 'generate' && platformName
+                  ? `Generating ${platformName}` : cfg?.label;
+                return (
+                  <div key={id} style={{
+                    display:'flex', alignItems:'center', gap:13,
+                    opacity: status === 'pending' ? 0.28 : 1,
+                    transition:'opacity 0.4s var(--ease)',
+                  }}>
+                    {status === 'done' ? (
+                      <div style={{
+                        width:20, height:20, borderRadius:'50%',
+                        background:'rgba(52,199,89,0.12)', border:'1.5px solid rgba(52,199,89,0.5)',
+                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                        color:'var(--success)',
+                      }}>
+                        {Ico.check(11)}
+                      </div>
+                    ) : status === 'active' ? (
+                      <div style={{
+                        width:20, height:20, borderRadius:'50%',
+                        background:'rgba(124,58,237,0.1)', border:'2px solid var(--purple)',
+                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                      }}>
+                        <div className="anim-dot" style={{
+                          width:8, height:8, borderRadius:'50%', background:'var(--purple)',
+                        }}/>
+                      </div>
+                    ) : (
+                      <div style={{
+                        width:20, height:20, borderRadius:'50%',
+                        border:'1.5px solid rgba(0,0,0,0.12)', flexShrink:0,
+                      }}/>
+                    )}
+                    <span style={{
+                      fontSize:13.5, letterSpacing:'-0.005em',
+                      fontWeight: status === 'active' ? 600 : 400,
+                      color: status === 'active' ? 'var(--text-1)' : 'var(--text-2)',
+                    }}>
+                      {lbl}
+                    </span>
+                    {status === 'active' && (
+                      <div style={{ marginLeft:'auto' }}>{Ico.spinner(14)}</div>
+                    )}
+                    {status === 'done' && (
+                      <span style={{ marginLeft:'auto', fontSize:11, color:'var(--success)', fontWeight:500 }}>done</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ─── Output section ───────────────────────────────────────────────────────
+
+    const Output = ({ generated, selected, onRegen }) => {
+      const [filter, setFilter] = useState('all');
+      const [allCopied, setAllCopied] = useState(false);
+
+      const ordered    = selected.filter(p => generated[p]);
+      const visible    = filter === 'all' ? ordered : ordered.filter(p => p === filter);
+
+      const copyAll = () => {
+        const text = ordered.map(p => {
+          const platform = PLATFORMS.find(pl => pl.id === p);
+          return `=== ${platform?.name} ===\n\n${generated[p]}`;
+        }).join('\n\n' + '─'.repeat(40) + '\n\n');
+        navigator.clipboard.writeText(text).then(() => {
+          setAllCopied(true);
+          setTimeout(() => setAllCopied(false), 2000);
+        });
+      };
+
+      return (
+        <div className="anim-fade-up" style={{ paddingBottom:100 }}>
+          {/* Header row */}
+          <div style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            marginBottom:22, flexWrap:'wrap', gap:12,
+          }}>
+            <h2 style={{
+              fontSize:26, fontWeight:700, color:'var(--text-1)',
+              letterSpacing:'-0.03em',
+            }}>
+              Your Content Suite
+            </h2>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <button
+                onClick={copyAll}
+                style={{
+                  display:'flex', alignItems:'center', gap:7,
+                  padding:'8px 16px', borderRadius:'var(--r-sm)',
+                  border:`1.5px solid ${allCopied ? 'rgba(52,199,89,0.4)' : 'var(--purple)'}`,
+                  background: allCopied ? 'rgba(52,199,89,0.07)' : 'rgba(124,58,237,0.06)',
+                  color: allCopied ? 'var(--success)' : 'var(--purple)',
+                  fontSize:13, fontWeight:600,
+                  transition:'all 0.15s var(--ease)',
+                }}
+              >
+                {allCopied ? Ico.check(13) : Ico.copy(13)}
+                {allCopied ? 'Copied ✓' : 'Copy All'}
+              </button>
+              <button
+                onClick={onRegen}
+                style={{
+                  fontSize:13, fontWeight:500, color:'var(--text-3)',
+                  background:'none', border:'none', padding:0,
+                  textDecoration:'underline', textDecorationColor:'var(--border)',
+                  transition:'color 0.15s',
+                }}
+                onMouseEnter={e=>e.currentTarget.style.color='var(--purple)'}
+                onMouseLeave={e=>e.currentTarget.style.color='var(--text-3)'}
+              >
+                Regenerate
+              </button>
+            </div>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="scroll-x" style={{ display:'flex', gap:6, marginBottom:24, paddingBottom:4 }}>
+            {['all', ...ordered].map(id => {
+              const p   = id === 'all' ? null : PLATFORMS.find(pl=>pl.id===id);
+              const act = filter === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setFilter(id)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:6,
+                    padding:'7px 14px', borderRadius:'var(--r-pill)', whiteSpace:'nowrap',
+                    border:`1.5px solid ${act ? 'var(--purple)' : 'var(--border)'}`,
+                    background: act ? 'rgba(124,58,237,0.07)' : 'var(--surface)',
+                    color: act ? 'var(--purple-text)' : 'var(--text-2)',
+                    fontSize:13, fontWeight: act ? 600 : 400,
+                    transition:'all 0.15s var(--ease)', flexShrink:0,
+                  }}
+                >
+                  {p && <Badge id={id} size={16}/>}
+                  {id === 'all' ? 'All' : p?.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Cards */}
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            {visible.map((id, i) => (
+              <Card key={id} platformId={id} text={generated[id]} index={i}/>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ─── App ──────────────────────────────────────────────────────────────────
+
+    const App = () => {
+      const [mode, setMode]             = useState('text');
+      const [content, setContent]       = useState('');
+      const [ytUrl, setYtUrl]           = useState('');
+      const [ytPreview, setYtPreview]   = useState(null);
+      const [urlErr, setUrlErr]         = useState('');
+      const [urlLoading, setUrlLoading] = useState(false);
+      const [platforms, setPlatforms]   = useState([]);
+      const [tone, setTone]             = useState('Conversational');
+      const [voice, setVoice]           = useState('');
+      const [voiceOpen, setVoiceOpen]   = useState(false);
+
+      const [appState, setAppState]       = useState('idle'); // idle|loading|done|error
+      const [errMsg, setErrMsg]           = useState('');
+      const [warning, setWarning]         = useState('');
+      const [stageHistory, setStageHistory] = useState([]);
+      const [curStage, setCurStage]       = useState('extract');
+      const [curPlatform, setCurPlatform] = useState('');
+      const [progress, setProgress]       = useState(0);
+      const [retrying, setRetrying]       = useState(false);
+      const [generated, setGenerated]     = useState({});
+
+      const taRef     = useRef(null);
+      const urlTimer  = useRef(null);
+      const outputRef = useRef(null);
+
+      // Auto-grow textarea
+      useEffect(() => {
+        if (!taRef.current) return;
+        taRef.current.style.height = 'auto';
+        taRef.current.style.height = Math.max(240, taRef.current.scrollHeight) + 'px';
+      }, [content]);
+
+      // YouTube oEmbed preview
+      const loadPreview = useCallback(async (url) => {
+        const re = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+        if (!url.trim()) { setYtPreview(null); setUrlErr(''); return; }
+        if (!re.test(url)) { setUrlErr('Enter a valid YouTube URL'); setYtPreview(null); return; }
+        setUrlErr(''); setUrlLoading(true);
+        try {
+          const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+          if (!r.ok) throw new Error();
+          const d = await r.json();
+          setYtPreview({ title: d.title, thumb: d.thumbnail_url, author: d.author_name });
+        } catch {
+          setYtPreview(null);
+          setUrlErr('Could not load preview — the video may be private.');
+        } finally { setUrlLoading(false); }
+      }, []);
+
+      const onUrlChange = (v) => {
+        setYtUrl(v);
+        clearTimeout(urlTimer.current);
+        urlTimer.current = setTimeout(() => loadPreview(v), 500);
+      };
+
+      const togglePlatform = id =>
+        setPlatforms(prev => prev.includes(id) ? prev.filter(p=>p!==id) : [...prev, id]);
+
+      const wordCount = useMemo(() => {
+        const s = mode === 'text' ? content : '';
+        return s.trim() ? s.trim().split(/\s+/).length : 0;
+      }, [content, mode]);
+
+      const canGen = useMemo(() => {
+        const hasContent = mode === 'text'
+          ? content.trim().length > 0
+          : ytUrl.trim().length > 0 && !urlErr;
+        return hasContent && platforms.length > 0 && appState === 'idle';
+      }, [mode, content, ytUrl, urlErr, platforms, appState]);
+
+      const handleSSE = useCallback((data) => {
+        if (data.type === 'heartbeat') return;
+        if (data.stage === 'warning')      { setWarning(data.message); return; }
+        if (data.stage === 'retrying')     { setRetrying(true); return; }
+        if (data.stage === 'platformError') {
+          setGenerated(p => ({ ...p, [data.platform]: `⚠️ ${data.message}` }));
+          return;
+        }
+        if (data.stage === 'result') {
+          setRetrying(false);
+          setGenerated(p => ({ ...p, [data.platform]: data.content }));
+          if (data.progress) setProgress(data.progress);
+          return;
+        }
+        if (data.stage === 'error') {
+          setAppState('error');
+          setErrMsg(data.message || 'An error occurred. Please try again.');
+          return;
+        }
+        if (data.stage === 'done') {
+          setProgress(100); setCurStage('done');
+          setStageHistory(p => [...new Set([...p, 'done'])]);
+          setTimeout(() => {
+            setAppState('done');
+            setTimeout(() => outputRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+          }, 700);
+          return;
+        }
+        if (data.stage) {
+          setRetrying(false);
+          setCurStage(data.stage);
+          if (data.stage === 'generate') setCurPlatform(data.platformName || '');
+          if (data.progress !== undefined) setProgress(data.progress);
+          setStageHistory(prev => {
+            const next = [...prev];
+            const mark = {
+              transcript: ['extract'],
+              analyse:    ['extract','transcript'],
+              map:        ['extract','transcript','analyse'],
+              generate:   ['extract','transcript','analyse','map'],
+              polish:     ['extract','transcript','analyse','map','generate'],
+              done:       ['extract','transcript','analyse','map','generate','polish'],
+            }[data.stage] || [];
+            mark.forEach(s => { if (!next.includes(s)) next.push(s); });
+            return next;
+          });
+        }
+      }, []);
+
+      const generate = async () => {
+        if (!canGen) return;
+        setAppState('loading'); setProgress(0); setCurStage('extract');
+        setCurPlatform(''); setStageHistory([]); setGenerated({});
+        setWarning(''); setRetrying(false); setErrMsg('');
+
+        try {
+          const res = await fetch(`${API_BASE}/api/repurpose`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              content: mode === 'text' ? content : '',
+              youtubeUrl: mode === 'youtube' ? ytUrl : '',
+              platforms, tone, voiceContext: voice,
+            }),
+          });
+
+          if (!res.ok) {
+            const e = await res.json().catch(()=>({}));
+            throw new Error(e.error || `Server error ${res.status}`);
+          }
+
+          const reader = res.body.getReader();
+          const dec = new TextDecoder();
+          let buf = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += dec.decode(value, { stream: true });
+            const parts = buf.split('\n\n');
+            buf = parts.pop();
+            for (const part of parts) {
+              for (const line of part.split('\n')) {
+                if (line.startsWith('data: ')) {
+                  try { handleSSE(JSON.parse(line.slice(6))); } catch {}
+                }
+              }
+            }
+          }
+        } catch (err) {
+          setAppState('error');
+          setErrMsg(err.message || 'Connection failed. Is the server running on :3001?');
+        }
+      };
+
+      const reset = () => {
+        setAppState('idle'); setGenerated({}); setStageHistory([]);
+        setProgress(0); setWarning(''); setErrMsg('');
+        window.scrollTo({ top:0, behavior:'smooth' });
+      };
+
+      const inputDimmed = appState === 'loading';
+
+      return (
+        <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+          <Header/>
+
+          <main style={{
+            maxWidth:760, margin:'0 auto',
+            padding:`${56 + 72}px 24px 0`,
+          }}>
+
+            {/* ── Hero ── */}
+            <div style={{
+              textAlign:'center', marginBottom:48,
+              opacity: inputDimmed ? 0.3 : 1,
+              transition:'opacity 0.3s var(--ease)',
+              pointerEvents: inputDimmed ? 'none' : 'auto',
+            }}>
+              <h1 style={{
+                fontSize:'clamp(38px, 5.5vw, 54px)',
+                fontWeight:800, letterSpacing:'-0.04em',
+                lineHeight:1.08, color:'var(--text-1)',
+                marginBottom:16,
+              }}>
+                Turn one piece of content<br/>
+                <span className="gradient-text">into everything.</span>
+              </h1>
+              <p style={{
+                fontSize:17, color:'var(--text-2)', lineHeight:1.65,
+                maxWidth:480, margin:'0 auto',
+              }}>
+                Paste a transcript, blog post, or drop a YouTube URL.<br/>
+                Cascade handles the rest.
+              </p>
+            </div>
+
+            {/* ── Input card ── */}
+            <div style={{
+              background:'var(--surface)',
+              border:'1px solid var(--border)',
+              borderRadius:'var(--r-xl)',
+              boxShadow:'var(--shadow-card)',
+              padding:'28px',
+              marginBottom:32,
+              opacity: inputDimmed ? 0.35 : 1,
+              pointerEvents: inputDimmed ? 'none' : 'auto',
+              transition:'opacity 0.3s var(--ease)',
+            }}>
+
+              {/* Mode toggle */}
+              <div style={{
+                display:'flex', gap:4, background:'rgba(0,0,0,0.04)',
+                borderRadius:'var(--r-sm)', padding:3, marginBottom:18,
+              }}>
+                {[['text','Paste Text'],['youtube','YouTube URL']].map(([m, label]) => (
+                  <button
+                    key={m}
+                    onClick={()=>setMode(m)}
+                    style={{
+                      flex:1, padding:'9px 0', borderRadius:8,
+                      border:'none',
+                      background: mode === m ? '#fff' : 'transparent',
+                      boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,0.1), 0 0 0 0.5px rgba(0,0,0,0.06)' : 'none',
+                      color: mode === m ? 'var(--text-1)' : 'var(--text-3)',
+                      fontSize:14, fontWeight: mode === m ? 600 : 400,
+                      transition:'all 0.2s var(--ease)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Text input */}
+              {mode === 'text' && (
+                <div style={{ position:'relative', marginBottom:20 }}>
+                  <textarea
+                    ref={taRef}
+                    value={content}
+                    onChange={e=>setContent(e.target.value)}
+                    placeholder="Paste your transcript, blog post, or raw content here…"
+                    style={{
+                      width:'100%', minHeight:240, padding:'15px',
+                      border:'1px solid var(--border)',
+                      borderRadius:'var(--r-md)',
+                      fontSize:15, lineHeight:1.65, color:'var(--text-1)',
+                      background:'rgba(0,0,0,0.01)',
+                      transition:'border-color 0.15s, box-shadow 0.15s',
+                    }}
+                  />
+                  {wordCount > 0 && (
+                    <span style={{
+                      position:'absolute', bottom:12, right:14,
+                      fontSize:12, color:'var(--text-3)', pointerEvents:'none',
+                    }}>
+                      {wordCount.toLocaleString()} words
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* YouTube input */}
+              {mode === 'youtube' && (
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ position:'relative' }}>
+                    <input
+                      type="url"
+                      value={ytUrl}
+                      onChange={e=>onUrlChange(e.target.value)}
+                      placeholder="https://www.youtube.com/watch?v=…"
+                      style={{
+                        width:'100%', padding:'14px 44px 14px 16px',
+                        border:`1px solid ${urlErr ? 'var(--error)' : 'var(--border)'}`,
+                        borderRadius:'var(--r-md)',
+                        fontSize:15, color:'var(--text-1)',
+                        background:'rgba(0,0,0,0.01)',
+                        transition:'border-color 0.15s, box-shadow 0.15s',
+                      }}
+                    />
+                    {urlLoading && (
+                      <div style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)' }}>
+                        {Ico.spinner(16)}
+                      </div>
+                    )}
+                  </div>
+                  {urlErr && (
+                    <p style={{ fontSize:13, color:'var(--error)', marginTop:6, paddingLeft:2 }}>
+                      {urlErr}
+                    </p>
+                  )}
+                  {ytPreview && (
+                    <div style={{
+                      display:'flex', gap:14, marginTop:12,
+                      padding:14, background:'rgba(0,0,0,0.02)',
+                      border:'1px solid var(--border)', borderRadius:'var(--r-md)',
+                    }}>
+                      <img src={ytPreview.thumb} alt="" style={{
+                        width:104, height:58, objectFit:'cover',
+                        borderRadius:'var(--r-xs)', flexShrink:0,
+                      }}/>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:600, color:'var(--text-1)', lineHeight:1.4, marginBottom:4 }}>
+                          {ytPreview.title}
+                        </div>
+                        <div style={{ fontSize:12, color:'var(--text-3)' }}>{ytPreview.author}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Platform selector */}
+              <div style={{ marginBottom:20 }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <span style={{
+                    fontSize:12, fontWeight:500, color:'var(--text-3)',
+                    letterSpacing:'0.06em', textTransform:'uppercase',
+                  }}>
+                    Platforms
+                  </span>
+                  <div style={{ display:'flex', gap:14 }}>
+                    {[['Select All', ()=>setPlatforms(PLATFORMS.map(p=>p.id))],
+                      ['Clear', ()=>setPlatforms([])]].map(([label, fn]) => (
+                      <button key={label} onClick={fn} style={{
+                        fontSize:12, fontWeight:500, color:'var(--purple)',
+                        background:'none', border:'none', padding:0,
+                        opacity:0.8, transition:'opacity 0.15s',
+                      }}
+                      onMouseEnter={e=>e.currentTarget.style.opacity='1'}
+                      onMouseLeave={e=>e.currentTarget.style.opacity='0.8'}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>
+                  {PLATFORMS.map(p => {
+                    const sel = platforms.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => togglePlatform(p.id)}
+                        style={{
+                          display:'flex', alignItems:'center', gap:7,
+                          padding:'7px 12px', borderRadius:'var(--r-pill)',
+                          border:`1.5px solid ${sel ? 'rgba(124,58,237,0.35)' : 'var(--border-mid)'}`,
+                          background: sel ? 'rgba(124,58,237,0.07)' : 'var(--surface)',
+                          color: sel ? 'var(--purple-text)' : 'var(--text-2)',
+                          fontSize:13, fontWeight: sel ? 500 : 400,
+                          transition:'all 0.15s var(--ease)',
+                          boxShadow: sel ? 'inset 0 1px 3px rgba(124,58,237,0.1)' : 'none',
+                        }}
+                      >
+                        <Badge id={p.id} size={17}/>
+                        {p.name}
+                        {sel && (
+                          <span className="anim-check-pop" style={{
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            width:14, height:14, borderRadius:'50%',
+                            background:'var(--purple)', color:'#fff', flexShrink:0,
+                          }}>
+                            {Ico.check(8)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Tone */}
+              <div style={{ marginBottom:18 }}>
+                <div style={{
+                  fontSize:12, fontWeight:500, color:'var(--text-3)',
+                  letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:10,
+                }}>
+                  Tone
+                </div>
+                <div style={{ display:'flex', gap:7, flexWrap:'wrap' }}>
+                  {TONES.map(t => {
+                    const act = tone === t;
+                    return (
+                      <button
+                        key={t}
+                        onClick={()=>setTone(t)}
+                        style={{
+                          padding:'7px 16px', borderRadius:'var(--r-pill)',
+                          border:`1.5px solid ${act ? 'transparent' : 'var(--border-mid)'}`,
+                          background: act
+                            ? 'linear-gradient(135deg, var(--purple) 0%, var(--purple-2) 100%)'
+                            : 'var(--surface)',
+                          color: act ? '#fff' : 'var(--text-2)',
+                          fontSize:13, fontWeight: act ? 600 : 400,
+                          transition:'all 0.15s var(--ease)',
+                          boxShadow: act ? '0 2px 8px rgba(124,58,237,0.25)' : 'none',
+                        }}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Voice context */}
+              <div style={{
+                border:'1px solid var(--border)', borderRadius:'var(--r-md)',
+                overflow:'hidden', marginBottom:24,
+              }}>
+                <button
+                  onClick={() => setVoiceOpen(v=>!v)}
+                  style={{
+                    width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+                    padding:'12px 15px', background:'none', border:'none',
+                    fontSize:13, fontWeight:500, color:'var(--text-2)',
+                    transition:'background 0.15s',
+                  }}
+                  onMouseEnter={e=>e.currentTarget.style.background='rgba(0,0,0,0.02)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='none'}
+                >
+                  <span>
+                    Customise voice{' '}
+                    <span style={{ color:'var(--text-3)', fontWeight:400 }}>(optional)</span>
+                  </span>
+                  {Ico.chevron(15, voiceOpen)}
+                </button>
+                {voiceOpen && (
+                  <div style={{ padding:'0 14px 14px' }}>
+                    <textarea
+                      value={voice}
+                      onChange={e=>setVoice(e.target.value)}
+                      placeholder='"Dan Martell — founder, investor, author. Direct and tactical. No fluff. Speaks to entrepreneurs."'
+                      rows={3}
+                      style={{
+                        width:'100%', padding:'12px 14px',
+                        border:'1px solid var(--border)', borderRadius:'var(--r-sm)',
+                        fontSize:14, lineHeight:1.55, color:'var(--text-1)',
+                        background:'rgba(0,0,0,0.01)',
+                        transition:'border-color 0.15s, box-shadow 0.15s',
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Generate button */}
+              <button
+                onClick={generate}
+                disabled={!canGen}
+                style={{
+                  width:'100%', height:60, border:'none',
+                  borderRadius:'var(--r-md)',
+                  background: canGen
+                    ? 'linear-gradient(135deg, #7C3AED 0%, #6366F1 100%)'
+                    : 'rgba(0,0,0,0.05)',
+                  color: canGen ? '#fff' : 'var(--text-3)',
+                  fontSize:17, fontWeight:600, letterSpacing:'-0.01em',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+                  cursor: canGen ? 'pointer' : 'not-allowed',
+                  boxShadow: canGen ? '0 4px 20px rgba(124,58,237,0.2)' : 'none',
+                  transition:'all 0.2s var(--ease-spring)',
+                }}
+                onMouseEnter={e => {
+                  if (!canGen) return;
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 10px 36px rgba(124,58,237,0.38)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = canGen ? '0 4px 20px rgba(124,58,237,0.2)' : 'none';
+                }}
+                onMouseDown={e => { e.currentTarget.style.transform = 'translateY(0) scale(0.99)'; }}
+                onMouseUp={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              >
+                Generate Content
+                {canGen && Ico.arrow(18)}
+              </button>
+            </div>
+
+            {/* ── Error banner ── */}
+            {appState === 'error' && (
+              <div className="anim-fade-up" style={{
+                marginBottom:24, padding:'16px 20px',
+                background:'rgba(255,59,48,0.06)',
+                border:'1px solid rgba(255,59,48,0.2)',
+                borderRadius:'var(--r-md)',
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap:16,
+              }}>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:600, color:'#C41E3A', marginBottom:3 }}>
+                    Something went wrong
+                  </div>
+                  <div style={{ fontSize:13, color:'var(--error)', lineHeight:1.5 }}>{errMsg}</div>
+                </div>
+                <button
+                  onClick={reset}
+                  style={{
+                    padding:'7px 15px', borderRadius:'var(--r-sm)',
+                    border:'1px solid rgba(255,59,48,0.25)',
+                    background:'var(--surface)', color:'#C41E3A',
+                    fontSize:13, fontWeight:500, whiteSpace:'nowrap',
+                    transition:'all 0.15s',
+                  }}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {/* ── Loading panel ── */}
+            {appState === 'loading' && (
+              <Loader
+                stageHistory={stageHistory}
+                currentStage={curStage}
+                progress={progress}
+                platformName={curPlatform}
+                retrying={retrying}
+                warning={warning}
+              />
+            )}
+
+            {/* ── Output ── */}
+            {appState === 'done' && (
+              <div ref={outputRef} style={{ paddingTop:8 }}>
+                {warning && (
+                  <div style={{
+                    display:'flex', alignItems:'center', gap:8, marginBottom:20,
+                    padding:'11px 16px', background:'var(--warning-bg)',
+                    border:'1px solid var(--warning-border)',
+                    borderRadius:'var(--r-sm)',
+                    fontSize:13, color:'var(--warning-text)',
+                  }}>
+                    {Ico.warn(14)} {warning}
+                  </div>
+                )}
+                <Output generated={generated} selected={platforms} onRegen={reset}/>
+              </div>
+            )}
+
+          </main>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
