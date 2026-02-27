@@ -19,8 +19,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api', repurposeRoutes);
 
 // Serve frontend
-app.use(express.static(path.join(__dirname, '../client')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../client/index.html')));
+const CLIENT_DIR = path.resolve(__dirname, '..', 'client');
+const CLIENT_INDEX = path.resolve(CLIENT_DIR, 'index.html');
+console.log(`[Cascade] Serving client from: ${CLIENT_DIR}`);
+app.use(express.static(CLIENT_DIR));
+app.get('*', (_req, res) => res.sendFile(CLIENT_INDEX));
 
 app.listen(PORT, () => {
   console.log(`\n🌊 Cascade server running on http://localhost:${PORT}`);
