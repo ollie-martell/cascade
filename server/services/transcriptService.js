@@ -1,14 +1,15 @@
 /**
  * YouTube transcript fetching — multi-strategy with cloud support.
  *
- * Strategy 1: InnerTube ANDROID v19 (primary — works from residential IPs)
- * Strategy 2: InnerTube ANDROID v18 (fallback)
- * Strategy 3: InnerTube IOS (different fingerprint — sometimes bypasses cloud blocks)
- * Strategy 4: Piped API proxy (cloud-friendly — Piped proxies through their own CDN)
+ * Strategy 1: youtubei.js (primary — generates proper session tokens, works from cloud IPs)
+ * Strategy 2: InnerTube ANDROID v19 (works from residential IPs)
+ * Strategy 3: InnerTube ANDROID v18 (fallback)
+ * Strategy 4: InnerTube IOS (different fingerprint)
  * Strategy 5: Page scrape with cookie forwarding (last resort)
  */
 
 const axios = require('axios');
+const { Innertube } = require('youtubei.js');
 
 // ─── URL parsing ─────────────────────────────────────────────────────────────
 
@@ -43,33 +44,7 @@ function pickBestTrack(tracks) {
   );
 }
 
-// ─── VTT / SRT parser ────────────────────────────────────────────────────────
-
-function parseVTT(raw) {
-  if (!raw || typeof raw !== 'string') return '';
-  return raw
-    .split('\n')
-    .map(l => l.trim())
-    .filter(l =>
-      l &&
-      l !== 'WEBVTT' &&
-      !l.match(/^\d{2}:\d{2}/) &&       // timestamps
-      !l.includes('-->') &&
-      !l.match(/^\d+$/) &&              // SRT line numbers
-      !l.startsWith('NOTE') &&
-      !l.startsWith('REGION') &&
-      !l.startsWith('STYLE') &&
-      !l.startsWith('Kind:') &&
-      !l.startsWith('Language:')
-    )
-    .map(l => l.replace(/<[^>]+>/g, '').trim())  // strip inline tags
-    .filter(Boolean)
-    .join(' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
-
-// ─── Caption URL fetcher ──────────────────────────────────────────────────────
+// ─── Caption URL fetcher (used by ANDROID/IOS strategies) ────────────────────
 
 async function fetchCaptionTrack(baseUrl, extraHeaders = {}) {
   const u = new URL(baseUrl);
@@ -118,6 +93,83 @@ async function fetchCaptionTrack(baseUrl, extraHeaders = {}) {
     if (t) texts.push(t);
   }
   return texts.join(' ').replace(/\s{2,}/g, ' ').trim();
+}
+
+// ─── youtubei.js strategy ─────────────────────────────────────────────────────
+// Creates a proper InnerTube session with visitor_data/session tokens, which
+// bypasses the cloud IP restriction that strips captionTracks from bare requests.
+
+let _innertubeInstance = null;
+let _innertubeExpiry = 0;
+const INNERTUBE_TTL_MS = 25 * 60 * 1000; // refresh session every 25 min
+
+async function getInnertube() {
+  if (!_innertubeInstance || Date.now() > _innertubeExpiry) {
+    _innertubeInstance = await Innertube.create({ generate_session_locally: true });
+    _innertubeExpiry = Date.now() + INNERTUBE_TTL_MS;
+  }
+  return _innertubeInstance;
+}
+
+async function fetchViaYoutubei(videoId) {
+  const yt = await getInnertube();
+  const info = await yt.getInfo(videoId);
+
+  // Try the transcript panel first (highest quality, properly formatted)
+  try {
+    const transcriptInfo = await info.getTranscript();
+    const segments = transcriptInfo?.transcript?.content?.body?.initial_segments;
+    if (segments?.length) {
+      const text = segments
+        .map(s => s.snippet?.runs?.map(r => r.text).join('') || '')
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      if (text.length > 30) {
+        console.log(`[Cascade] youtubei.js transcript panel: ${text.length} chars`);
+        return text;
+      }
+    }
+  } catch (_) {
+    // No transcript panel — fall through to caption tracks
+  }
+
+  // Fall back to caption tracks
+  const tracks = info.captions?.caption_tracks;
+  if (!tracks?.length) return null;
+
+  const track =
+    tracks.find(t => t.language_code?.startsWith('en') && t.kind !== 'asr') ||
+    tracks.find(t => t.language_code?.startsWith('en')) ||
+    tracks[0];
+
+  if (!track?.base_url) return null;
+
+  console.log(
+    `[Cascade] youtubei.js: ${tracks.length} tracks, using "${track.language_code}" ${track.kind === 'asr' ? '(auto)' : '(manual)'}`
+  );
+
+  // Fetch caption content using axios (base_url already has a signed token)
+  const capUrl = track.base_url + '&fmt=json3';
+  const capRes = await axios.get(capUrl, {
+    timeout: 12000,
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+  });
+
+  const data = capRes.data;
+  if (data?.events) {
+    const text = data.events
+      .filter(e => Array.isArray(e.segs))
+      .map(e => e.segs.map(s => (s.utf8 || '').replace(/\n/g, ' ')).join('').trim())
+      .filter(t => t && t !== '[♪♪♪]' && t !== '[Music]' && t !== '[Applause]')
+      .join(' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+    if (text.length > 30) return text;
+  }
+
+  return null;
 }
 
 // ─── InnerTube ANDROID client ─────────────────────────────────────────────────
@@ -217,73 +269,6 @@ async function fetchViaIOS(videoId) {
   });
 }
 
-// ─── Piped API proxy ──────────────────────────────────────────────────────────
-// Piped is an open-source YouTube front-end that proxies content through its
-// own CDN — bypassing YouTube's cloud IP restrictions.
-
-const PIPED_INSTANCES = [
-  'https://pipedapi.kavin.rocks',
-  'https://api.piped.yt',
-  'https://piped-api.lunar.icu',
-];
-
-async function fetchViaPiped(videoId) {
-  for (const instance of PIPED_INSTANCES) {
-    try {
-      const listRes = await axios.get(`${instance}/captions/${videoId}`, {
-        timeout: 8000,
-        headers: { 'User-Agent': 'cascade/1.0' },
-      });
-
-      const captions = listRes.data?.captions;
-      if (!captions?.length) {
-        console.log(`[Cascade] Piped ${instance}: no captions listed`);
-        continue;
-      }
-
-      const track =
-        captions.find(c => c.code?.startsWith('en') && !c.autoGenerated) ||
-        captions.find(c => c.code?.startsWith('en')) ||
-        captions.find(c => c.label?.toLowerCase().includes('english') && !c.autoGenerated) ||
-        captions.find(c => c.label?.toLowerCase().includes('english')) ||
-        captions[0];
-
-      if (!track?.url) continue;
-
-      console.log(
-        `[Cascade] Piped (${instance}): ${captions.length} tracks, using "${track.code || track.label}" ${track.autoGenerated ? '(auto)' : '(manual)'}`
-      );
-
-      const capRes = await axios.get(track.url, {
-        timeout: 12000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        },
-      });
-
-      let text = '';
-      if (capRes.data && typeof capRes.data === 'object' && capRes.data.events) {
-        // JSON3 format
-        text = capRes.data.events
-          .filter(e => Array.isArray(e.segs))
-          .map(e => e.segs.map(s => (s.utf8 || '').replace(/\n/g, ' ')).join('').trim())
-          .filter(t => t && t !== '[♪♪♪]' && t !== '[Music]' && t !== '[Applause]')
-          .join(' ')
-          .replace(/\s{2,}/g, ' ')
-          .trim();
-      } else if (typeof capRes.data === 'string') {
-        text = parseVTT(capRes.data);
-      }
-
-      if (text && text.length > 30) return text;
-      console.log(`[Cascade] Piped ${instance}: caption content was empty`);
-    } catch (err) {
-      console.log(`[Cascade] Piped ${instance} failed: ${err.message}`);
-    }
-  }
-  return null;
-}
-
 // ─── Page scrape fallback ─────────────────────────────────────────────────────
 
 async function fetchViaPageScrape(videoId) {
@@ -360,10 +345,10 @@ async function fetchTranscript(youtubeUrl) {
   console.log(`[Cascade] Fetching transcript: ${videoId}`);
 
   const strategies = [
+    { name: 'youtubei.js',  fn: () => fetchViaYoutubei(videoId) },
     { name: 'ANDROID v19',  fn: () => fetchViaAndroid(videoId, '19.09.37', 34) },
     { name: 'ANDROID v18',  fn: () => fetchViaAndroid(videoId, '18.11.34', 32) },
     { name: 'IOS',          fn: () => fetchViaIOS(videoId) },
-    { name: 'Piped',        fn: () => fetchViaPiped(videoId) },
     { name: 'Page scrape',  fn: () => fetchViaPageScrape(videoId) },
   ];
 
